@@ -13,7 +13,8 @@ public class App
     
     public static int doblar( int numero )
     {
-        return numero*3;
+        /* Arreglo el bug*/
+        return numero*2;
     }
     
     public static int mayor( int numero1, int numero2 )
