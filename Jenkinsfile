@@ -4,88 +4,57 @@
 
 pipeline {
     
-    agent any // Para definir DONDE QUIERO QUE SE EJECUTE ESTA TAREA
-    //Parametros
-    //Triggers
+    agent any
+    
     stages {
-       stage("Compilación") {
-           steps { // Hacemos las llamadas a los plugins
-               sh "mvn compile" // Llamada a compilacion Maven
-           }
-           post {
-               always { // Post tareas que siempre deben de ejecutarse
-                  sh "echo Acabó la compilación"
-               }
-               success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-                  sh "echo Y acabó bien"
-               }
-               failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-                  sh "echo Pero acabó mal"
-               }
-           }
-       }
-       stage("Compilación de pruebas") {
-            steps { // Hacemos las llamadas a los plugins
-               sh "mvn test-compile" // Llamada a compilacion de pruebas Maven
-           }
-           post {
-               always { // Post tareas que siempre deben de ejecutarse
-                  sh "echo Acabó la compilación de pruebas"
-               }
-               success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-                  sh "echo Y acabó bien"
-               }
-               failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-                  sh "echo Pero acabó mal"
-               }
-           }
-           
-       }
-       stage("Pruebas") {
-           steps { // Hacemos las llamadas a los plugins
-               sh "mvn test" // Llamada a ejecución de pruebas Maven
-           }
-           post {
-               always { // Post tareas que siempre deben de ejecutarse
-                  sh "echo Acabó la ejecución de pruebas"
-                  junit 'target/surefire-reports/*.xml'
-               }
-               success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-                  sh "echo Y acabó bien"
-               }
-               failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-                  sh "echo Pero acabó mal"
-               }
-           }
-       }
-       stage("Empaquetado") {
-           steps { // Hacemos las llamadas a los plugins
-               sh "mvn package" // Llamada a creación del paquete
-           }
-           post {
-               always { // Post tareas que siempre deben de ejecutarse
-                  sh "echo Acabó el empaquetado"
-               }
-               success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-                  sh "echo Y acabó bien"
-                  archiveArtifacts artifacts: 'target/*.jar', followSymlinks: false
-               }
-               failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-                  sh "echo Pero acabó mal"
-               }
-           }
-       }
+        stage("Compilación") {
+            sh "mvn compile"
+        }
+        stage("Pruebas") {
+            stages {
+                stage("Pruebas Dinámicas") {
+                    stages {
+                        stage("Compilación pruebas") {
+                            steps {
+                                sh "mvn test-compile"// Compilar pruebas -> Las pruebas no pueden ejecutarse
+                            }
+                        }
+                        stage("Ejecución pruebas") {
+                            steps {
+                                sh "mvn test"// Ejecutar pruebas -> Genera informe... tanto si se ejecutan bien como si se ejecutan mal
+                            }
+                            post{
+                                always {
+                                 junit testResults: 'target/surefire-reports/*.xml' // Guardar el informe de pruebas <- 
+                                }    
+                            }
+                        }
+                    }
+                }
+                
+                stage("SonarQube") {
+                    sh """
+                    mvn sonar:sonar -Dsonar.projectKey=miproyecto
+                        -Dsonar.host.url=http://172.31.5.147:8081
+                        -Dsonar.login=1f869cc7930343f1549e491b6d4710a8bc2643bc
+                        """   
+                }
+            }
+        }
+        stage("Empaquetado") {
+            steps {
+               sh "mvn package" // Empaquetar
+            }
+            post{
+                success {
+                  archiveArtifacts artifacts: 'target/*.jar', followSymlinks: false // Guardar el artefacto (resultante del empaquetado)
+                }
+            }
+        }
     }
-
     post {
-       always { // Post tareas que siempre deben de ejecutarse
-          sh "echo Acabó la etapa 2"
-       }
-       success { // Postareas que SOLO se ejecutan si los pasos (STEPS) han ido bien
-          sh "echo Y acabó bien"
-       }
-       failure { // Postareas que SOLO se ejecutan si los pasos (STEPS) han dado error
-          sh "echo Pero acabó mal"
-       }
+        always {
+            cleanWs() // Borrar el espacio de trabajo
+        }
     }
 }
