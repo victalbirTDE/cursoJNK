@@ -35,12 +35,17 @@ pipeline {
                 }
                 stage("SonarQube") {
                    steps{
-                     sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=Maven \
-                        -Dsonar.host.url=http://172.31.5.147:8081 \
-                        -Dsonar.login=1f869cc7930343f1549e491b6d4710a8bc2643bc
-                        """ 
+                      withSonarqubeEnv('sonarqube'){
+                        sh """
+                           mvn sonar:sonar \
+                           -Dsonar.projectKey=miproyecto \
+                           -Dsonar.host.url=http://172.31.5.147:8081 \
+                           -Dsonar.login=1f869cc7930343f1549e491b6d4710a8bc2643bc
+                           """ 
+                      }
+                      timeout(time: 10, unit: 'MINUTES'){
+                        waitForQualityGate abortPipeline: true 
+                      }
                    }
                 }
             }
