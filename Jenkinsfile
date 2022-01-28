@@ -8,7 +8,9 @@ pipeline {
     
     stages {
         stage("Compilación") {
-            sh "mvn compile"
+           steps{
+              sh "mvn compile"
+           }
         }
         stage("Pruebas") {
             stages {
@@ -31,13 +33,14 @@ pipeline {
                         }
                     }
                 }
-                
                 stage("SonarQube") {
-                    sh """
-                    mvn sonar:sonar -Dsonar.projectKey=miproyecto
+                   steps{
+                     sh """
+                        mvn sonar:sonar -Dsonar.projectKey=miproyecto
                         -Dsonar.host.url=http://172.31.5.147:8081
                         -Dsonar.login=1f869cc7930343f1549e491b6d4710a8bc2643bc
-                        """   
+                        """ 
+                   }
                 }
             }
         }
